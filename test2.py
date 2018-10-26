@@ -1,10 +1,7 @@
-import speech_recognition as sr
-from wit import Wit
-import pyaudio
+import requests
 import json
 import pyaudio
 import wave
-
 
 def record_audio(RECORD_SECONDS, WAVE_OUTPUT_FILENAME):
     # --------- SETTING PARAMS FOR OUR AUDIO FILE ------------#
@@ -63,24 +60,20 @@ def read_audio(WAVE_FILENAME):
         audio = f.read()
     return audio
 
+API_ENDPOINT = 'https://api.wit.ai/speech'
+ACCESS_TOKEN = 'AVOW4L6WX24RHWYPY3ME5OD34P42RMT4'
 
+# get a sample of the audio that we recorded before.
+audio = read_audio("hinigga.wav")
 
-from wit import Wit
-wit_access_token = 'AVOW4L6WX24RHWYPY3ME5OD34P42RMT4'
+# defining headers for HTTP request
+headers = {'authorization': 'Bearer ' + ACCESS_TOKEN,
+           'Content-Type': 'audio/wav'}
 
-client = Wit(wit_access_token)
+#Send the request as post request and the audio as data
+resp = requests.post(API_ENDPOINT, headers = headers,
+                         data = audio)
 
-# Wit.ai api access token
-
-def RecognizeSpeech(AUDIO_FILE):
-    from wit import Wit
-    wit_access_token = 'AVOW4L6WX24RHWYPY3ME5OD34P42RMT4'
-    client = Wit(wit_access_token)
-    with open(AUDIO_FILE, 'rb') as f:
-        result = client.speech(f,None,{'Content-Type':'audio/wav'})
-    dumps = json.dumps(result)
-    data = json.loads(dumps)
-    text = data['_text']
-    print(text)
-
-RecognizeSpeech('test.wav')
+#Get the text
+data = json.loads(resp.content)
+print(data)

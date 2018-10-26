@@ -1,6 +1,6 @@
 import pyaudio
 import wave
-
+import pyaudio
 
 def record_audio(RECORD_SECONDS, WAVE_OUTPUT_FILENAME):
     # --------- SETTING PARAMS FOR OUR AUDIO FILE ------------#
