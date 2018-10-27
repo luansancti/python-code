@@ -31,6 +31,9 @@ speed = 9600
 wit_access_token = 'I74NFKU4GZJ72MHATBITSMZWPU4M6YH6'
 clientwit = Wit(wit_access_token)
 
+connection = serial.Serial("COM5", 9600)
+time.sleep(2)
+
 clientgoogle = speech.SpeechClient()
 
 config = types.RecognitionConfig(
@@ -72,30 +75,23 @@ def sayFANOFF():
 
 
 def onLIGTH():
-    conection = serial.Serial(port, speed)
-    time.sleep(2)
-    conection.write(str.encode('A'))
+    connection.write(str.encode('A'))
     sayLIGHTON()
 
 
 def offLIGTH():
-    conection = serial.Serial(port, speed)
-    time.sleep(2)
-    conection.write(str.encode('B'))
+    connection.write(str.encode('B'))
     sayLIGHTOFF()
 
 
+
 def onFAN():
-    conection = serial.Serial(port, speed)
-    time.sleep(2)
-    conection.write(str.encode('C'))
+    connection.write(str.encode('C'))
     sayFANON()
 
 
 def offFAN():
-    conection = serial.Serial(port, speed)
-    time.sleep(2)
-    conection.write(str.encode('D'))
+    connection.write(str.encode('D'))
     sayFANOFF()
 
 ##################################################
@@ -103,9 +99,8 @@ def offFAN():
 
 ################## Speech Recog #################
 
-def RecognizeSpeech(TEXT_VALUE):
-    with open(AUDIO_FILE, 'rb') as audio:
-        result = clientwit.speech(audio,None,{'Content-Type':'audio/wav'})
+def RecognizeText(TEXT_VALUE):
+        result = clientwit.message(TEXT_VALUE)
         print(result)
         jsondump = json.dumps(result)
         jsonloads = json.loads(jsondump)
@@ -116,25 +111,13 @@ def RecognizeSpeech(TEXT_VALUE):
         value = value['value']
         return value
 
-def RecognizeSpeech(AUDIO_FILE):
-    print('Iniciando o processo de speech')
-    with open(AUDIO_FILE, 'rb') as f:
-        result = clientwit.speech(f,None,{'Content-Type':'audio/wav'})
-    print('obtive a resposta')
-    data = result
-    print(data)
-    jsondump = json.dumps(result)
-    jsonloads = json.loads(jsondump)
-    text = jsonloads['_text']
-    return text
-
 def RecognizeSpeechGoogle(AUDIO_FILE):
     with io.open(AUDIO_FILE, 'rb') as audio_file:
         content = audio_file.read()
         audio = types.RecognitionAudio(content=content)
     response  = clientgoogle.recognize(config, audio)
     for result in response.results:
-        print('Transcript: {}'.format(result.alternatives[0].transcript))
+        return(format(result.alternatives[0].transcript))
 
 
 ####################################################
@@ -145,33 +128,47 @@ def RecognizeSpeechGoogle(AUDIO_FILE):
 while True:
     repeat = True
     print('I am hear you...')
-    audio = record_audio(2,'speack.wav')
-    recog = RecognizeSpeech('speack.wav')
-    os.remove('speack.wav')
-    if(recog == 'hello'):
+    #audio = record_audio(2,'speack.wav')
+    #recog = RecognizeSpeechGoogle('speack.wav')
+    rec = sr.Recognizer()
+    with sr.Microphone() as audio:
+        frase = rec.listen(audio)
+
+    try:
+        recog = rec.recognize_sphinx(frase)
         print(recog)
-        sayHNIGGA()
-        time.sleep(0.7)
-        while repeat:
-            sayIAMHEAR()
-            record_audio(3, 'choice.wav')
-            recog = RecognizeSpeechValue('choice.wav')
-            os.remove('choice.wav')
-            if( recog == 'turn on lamp'):
-                print('Ligou a lampada')
-                onLIGTH()
-                repeat = False;
-            elif(recog == 'turn off lamp'):
-                print('Desligou a lampada')
-                offLIGTH()
-                repeat = False
-            elif (recog == 'turn on fan'):
-                onFAN()
-                repeat = False
-            elif (recog == 'turn off fan'):
-                print('Desligou o ventilador')
-                offFAN()
-                repeat = False
+        if (recog == 'hello machine'):
+            print(recog)
+            sayHNIGGA()
+            time.sleep(0.7)
+            while repeat:
+                sayIAMHEAR()
+                record_audio(3, 'choice.wav')
+                recog = RecognizeSpeechGoogle('choice.wav')
+                print(recog)
+                action = RecognizeText(recog)
+                os.remove('choice.wav')
+                if (action == 'turn on lamp'):
+                    print('Ligou a lampada')
+                    onLIGTH()
+                    repeat = False;
+                elif (action == 'turn off lamp'):
+                    print('Desligou a lampada')
+                    offLIGTH()
+                    repeat = False
+                elif (action == 'turn on fan'):
+                    onFAN()
+                    repeat = False
+                elif (action == 'turn off fan'):
+                    print('Desligou o ventilador')
+                    offFAN()
+                    repeat = False
+
+    except sr.UnknownValueError:
+        print("Sphinx could not understand audio")
+    except sr.RequestError as e:
+        print("Sphinx error; {0}".format(e))
+
 
 
 ######################################################
